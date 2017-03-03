@@ -109,6 +109,13 @@ void FusionEKF::Predict(const MeasurementPackage& m)
 {
   const long current_time_stamp = m.timestamp_;
   const float dt = (current_time_stamp - previous_timestamp_) / 1.0e6;
+
+  if (dt < 0.001f)
+  {
+    // Two simultaneous measurements -> skip prediction
+    return;
+  }
+
   previous_timestamp_ = current_time_stamp;
 
   UpdateProcessCovarianceMatrix(dt, 125, 125);
