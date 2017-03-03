@@ -14,7 +14,7 @@ public:
   // state covariance matrix
   MatrixXd P_;
 
-  // state transistion matrix
+  // state transition matrix
   MatrixXd F_;
 
   // process covariance matrix
