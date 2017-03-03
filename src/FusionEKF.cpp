@@ -111,7 +111,7 @@ void FusionEKF::Predict(const MeasurementPackage& m)
   const float dt = (current_time_stamp - previous_timestamp_) / 1.0e6;
   previous_timestamp_ = current_time_stamp;
 
-  UpdateProcessCovarianceMatrix(dt, 1, 1);
+  UpdateProcessCovarianceMatrix(dt, 125, 125);
   UpdateStateTransitionMatrix(dt);
 
   ekf_.Predict();
