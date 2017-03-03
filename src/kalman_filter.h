@@ -18,12 +18,9 @@ public:
    * @param x_in Initial state
    * @param P_in Initial state covariance
    * @param F_in Transition matrix
-   * @param H_in Measurement matrix
-   * @param R_in Measurement covariance matrix
    * @param Q_in Process covariance matrix
    */
-  void Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
-      MatrixXd &H_in, MatrixXd &R_in, MatrixXd &Q_in);
+  void Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in, MatrixXd &Q_in);
 
   /**
    * Prediction Predicts the state and the state covariance
@@ -35,14 +32,11 @@ public:
   /**
    * Updates the state and
    * @param z The measurement at k+1
+   * @param H measurement matrix
+   * @param R measurement covariance matrix
    */
-  void Update(const VectorXd &z);
+  void Update(const VectorXd& z, const MatrixXd& H, const MatrixXd& R);
 
-  /**
-   * @param z The measurement at k+1
-   * @param z_pred The predicted measurements at k+1
-   */
-  void UpdateWithAlreadyPredictedMeasurements(const VectorXd &z, const VectorXd &z_pred);
 
 public:
   // state vector
@@ -56,12 +50,6 @@ public:
 
   // process covariance matrix
   MatrixXd Q_;
-
-  // measurement matrix
-  MatrixXd H_;
-
-  // measurement covariance matrix
-  MatrixXd R_;
 
   // identity matrix
   MatrixXd I_;

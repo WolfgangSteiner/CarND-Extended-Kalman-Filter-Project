@@ -68,21 +68,21 @@ void FusionEKF::Initialize(const MeasurementPackage& m)
 
   // first measurement
   cout << "EKF: " << endl;
-  ekf_.x_ = VectorXd(4);
-  ekf_.x_ << 1, 1, 1, 1;
+  auto x = VectorXd(4);
 
-  ekf_.P_ = MatrixXd(4,4);
-  ekf_.P_ << 1.0, 0.0, 0.0, 0.0,
-             0.0, 1.0, 0.0, 0.0,
-             0.0, 0.0, 1000.0, 0.0,
-             0.0, 0.0, 0.0, 1000.0;
+  auto P = MatrixXd(4,4);
+  P << 1.0, 0.0, 0.0, 0.0,
+       0.0, 1.0, 0.0, 0.0,
+       0.0, 0.0, 1000.0, 0.0,
+       0.0, 0.0, 0.0, 1000.0;
 
-  ekf_.Q_ = MatrixXd(4,4);
-  ekf_.F_ = MatrixXd(4,4);
-  ekf_.F_ << 1.0, 0.0, 1.0, 0.0,
-             0.0, 1.0, 0.0, 1.0,
-             0.0, 0.0, 1.0, 0.0,
-             0.0, 0.0, 0.0, 1.0;
+  auto Q = MatrixXd(4,4);
+
+  auto F = MatrixXd(4,4);
+  F << 1.0, 0.0, 1.0, 0.0,
+       0.0, 1.0, 0.0, 1.0,
+       0.0, 0.0, 1.0, 0.0,
+       0.0, 0.0, 0.0, 1.0;
 
   previous_timestamp_ = m.timestamp_;
 
@@ -93,12 +93,14 @@ void FusionEKF::Initialize(const MeasurementPackage& m)
     const double rho_dot = m.raw_measurements_(2,0);
     auto pos = Tools::PolarToCartesian(rho, phi);
     auto vel = Tools::PolarToCartesian(rho_dot, phi);
-    ekf_.x_ << pos(0,0), pos(1,0), vel(0,0), vel(1,0);
+    x << pos(0,0), pos(1,0), vel(0,0), vel(1,0);
   }
   else if (m.sensor_type_ == MeasurementPackage::LASER)
   {
-    ekf_.x_ <<  m.raw_measurements_(0,0), m.raw_measurements_(1,0), 0.0, 0.0;
+    x <<  m.raw_measurements_(0,0), m.raw_measurements_(1,0), 0.0, 0.0;
   }
+
+  ekf_.Init(x, P, F, Q);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -106,23 +108,12 @@ void FusionEKF::Initialize(const MeasurementPackage& m)
 void FusionEKF::Predict(const MeasurementPackage& m)
 {
   const long current_time_stamp = m.timestamp_;
-  const double dt = (current_time_stamp - previous_timestamp_) / 1.0e6;
-
+  const float dt = (current_time_stamp - previous_timestamp_) / 1.0e6;
   previous_timestamp_ = current_time_stamp;
 
-  const float noise_ax = 250;
-  const float noise_ay = 250;
-  const float dt_2 = dt * dt;
-  const float dt_3 = dt_2 * dt;
-  const float dt_4 = dt_3 * dt;
+  UpdateProcessCovarianceMatrix(dt, 1, 1);
+  UpdateStateTransitionMatrix(dt);
 
-  ekf_.Q_ <<  dt_4/4*noise_ax, 0, dt_3/2*noise_ax, 0,
-    0, dt_4/4*noise_ay, 0, dt_3/2*noise_ay,
-    dt_3/2*noise_ax, 0, dt_2*noise_ax, 0,
-    0, dt_3/2*noise_ay, 0, dt_2*noise_ay;
-
-  ekf_.F_(0,2) = dt;
-  ekf_.F_(1,3) = dt;
   ekf_.Predict();
 }
 
@@ -132,20 +123,35 @@ void FusionEKF::Update(const MeasurementPackage& m)
 {
   if (m.sensor_type_ == MeasurementPackage::RADAR)
   {
-    VectorXd z(3);
-    z << m.raw_measurements_(0,0), m.raw_measurements_(1,0), m.raw_measurements_(2,0);
     Hj_ = Tools::CalculateJacobian(ekf_.x_);
-    ekf_.H_ = Hj_;
-    ekf_.R_ = R_radar_;
-    ekf_.Update(m.raw_measurements_);
+    ekf_.Update(m.raw_measurements_, Hj_, R_radar_);
   }
   else
   {
-    const auto z = m.raw_measurements_;
-    ekf_.H_ = H_laser_;
-    ekf_.R_ = R_laser_;
-    ekf_.Update(z);
+    ekf_.Update(m.raw_measurements_, H_laser_, R_laser_);
   }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void FusionEKF::UpdateProcessCovarianceMatrix(float dt, float noise_ax, float noise_ay)
+{
+  const float dt_2 = dt * dt;
+  const float dt_3 = dt_2 * dt;
+  const float dt_4 = dt_3 * dt;
+
+  ekf_.Q_ <<  dt_4/4*noise_ax, 0, dt_3/2*noise_ax, 0,
+    0, dt_4/4*noise_ay, 0, dt_3/2*noise_ay,
+    dt_3/2*noise_ax, 0, dt_2*noise_ax, 0,
+    0, dt_3/2*noise_ay, 0, dt_2*noise_ay;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void FusionEKF::UpdateStateTransitionMatrix(float dt)
+{
+  ekf_.F_(0,2) = dt;
+  ekf_.F_(1,3) = dt;
 }
 
 //======================================================================================================================

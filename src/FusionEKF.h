@@ -24,6 +24,8 @@ private:
   void Initialize(const MeasurementPackage& measurement_package);
   void Predict(const MeasurementPackage& measurement_package);
   void Update(const MeasurementPackage& measurement_package);
+  void UpdateProcessCovarianceMatrix(float dt, float noise_ax, float noise_ay);
+  void UpdateStateTransitionMatrix(float dt);
 
 private:
   bool is_initialized_;
