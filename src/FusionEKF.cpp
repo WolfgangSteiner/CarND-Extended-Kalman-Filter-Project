@@ -100,9 +100,9 @@ void FusionEKF::Predict(const MeasurementPackage& m)
   const long current_time_stamp = m.timestamp_;
   const float dt = (current_time_stamp - previous_timestamp_) / 1.0e6;
 
-  if (dt < 0.001f)
+  if (dt < 0.005f)
   {
-    // Two simultaneous measurements -> skip prediction
+    // Second of two (nearly) simultaneous measurements -> skip prediction.
     return;
   }
 
