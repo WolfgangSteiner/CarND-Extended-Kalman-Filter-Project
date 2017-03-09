@@ -37,6 +37,11 @@ public:
    */
   void Update(const VectorXd& z, const MatrixXd& H, const MatrixXd& R);
 
+  void UpdateWithAlreadyPredictedMeasurements(
+    const VectorXd& z,
+    const VectorXd& z_pred,
+    const MatrixXd& H,
+    const MatrixXd& R);
 
 public:
   // state vector

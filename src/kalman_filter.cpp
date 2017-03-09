@@ -37,6 +37,17 @@ void KalmanFilter::Predict()
 void KalmanFilter::Update(const VectorXd &z, const MatrixXd& H, const MatrixXd& R)
 {
   const VectorXd z_pred = H*x_;
+  UpdateWithAlreadyPredictedMeasurements(z, z_pred, H, R);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void KalmanFilter::UpdateWithAlreadyPredictedMeasurements(
+  const VectorXd& z,
+  const VectorXd& z_pred,
+  const MatrixXd& H,
+  const MatrixXd& R)
+{
   const VectorXd y = z - z_pred;
   const MatrixXd Ht = H.transpose();
   const MatrixXd S = H * P_ * Ht + R;
@@ -46,5 +57,4 @@ void KalmanFilter::Update(const VectorXd &z, const MatrixXd& H, const MatrixXd& 
   x_ = x_ + (K * y);
   P_ = (I_ - K * H) * P_;
 }
-
 //======================================================================================================================

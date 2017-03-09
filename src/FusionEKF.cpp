@@ -26,12 +26,12 @@ FusionEKF::FusionEKF()
   const float sigma_py = s;
   R_laser_ << sigma_px,  0.0,  0.0, sigma_py;
 
-  const float sigma_rho = s;
-  const float sigma_phi = s;
-  const float sigma_rho_dot = s;
-  R_radar_ << sigma_rho, 0.0, 0.0,
-    0.0, sigma_phi, 0.0,
-    0.0, 0.0, sigma_rho_dot;
+  const float var_rho = pow(0.3,2);
+  const float var_phi = pow(0.0175,2);
+  const float var_rho_dot = pow(0.1,2);
+  R_radar_ << var_rho, 0.0, 0.0,
+    0.0, var_phi, 0.0,
+    0.0, 0.0, var_rho_dot;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -108,7 +108,11 @@ void FusionEKF::Predict(const MeasurementPackage& m)
 
   previous_timestamp_ = current_time_stamp;
 
-  UpdateProcessCovarianceMatrix(dt, 125, 125);
+  // max acceleration of a human (Usain Bolt) is 3.09 m/s**2, according to:
+  // http://cpb.iphy.ac.cn/fileup/PDF/2016-3-034501.pdf
+  const float a_max = 3.0f;
+  const float std_a = 0.5 * a_max;
+  UpdateProcessCovarianceMatrix(dt, std_a);
   UpdateStateTransitionMatrix(dt);
 
   ekf_.Predict();
@@ -116,12 +120,32 @@ void FusionEKF::Predict(const MeasurementPackage& m)
 
 //----------------------------------------------------------------------------------------------------------------------
 
+VectorXd FusionEKF::PredictRadarMeasurement(const VectorXd& x) const
+{
+  const float px = x(0,0);
+  const float py = x(1,0);
+  const float vx = x(2,0);
+  const float vy = x(3,0);
+  const float eps = 1e-5;
+  const float rho = sqrt(px * px + py * py);
+  const float phi = atan2(py, px);
+  const float rho_dot = (px * vx + py * vy) / (eps + rho);
+  VectorXd result(3);
+  result << rho, phi, rho_dot;
+  return result;
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 void FusionEKF::Update(const MeasurementPackage& m)
 {
   if (m.sensor_type_ == MeasurementPackage::RADAR)
   {
+    const auto& z = m.raw_measurements_;
     Hj_ = Tools::CalculateJacobian(ekf_.x_);
-    ekf_.Update(m.raw_measurements_, Hj_, R_radar_);
+    const VectorXd z_pred = PredictRadarMeasurement(ekf_.x_);
+    ekf_.UpdateWithAlreadyPredictedMeasurements(z, z_pred, Hj_, R_radar_);
   }
   else
   {
@@ -131,16 +155,17 @@ void FusionEKF::Update(const MeasurementPackage& m)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FusionEKF::UpdateProcessCovarianceMatrix(float dt, float noise_ax, float noise_ay)
+void FusionEKF::UpdateProcessCovarianceMatrix(float dt, float std_a)
 {
   const float dt_2 = dt * dt;
   const float dt_3 = dt_2 * dt;
   const float dt_4 = dt_3 * dt;
+  const float var_a =  pow(std_a, 2);
 
-  ekf_.Q_ <<  dt_4/4*noise_ax, 0, dt_3/2*noise_ax, 0,
-    0, dt_4/4*noise_ay, 0, dt_3/2*noise_ay,
-    dt_3/2*noise_ax, 0, dt_2*noise_ax, 0,
-    0, dt_3/2*noise_ay, 0, dt_2*noise_ay;
+  ekf_.Q_ <<  dt_4/4*var_a, 0, dt_3/2*var_a, 0,
+              0, dt_4/4*var_a, 0, dt_3/2*var_a,
+              dt_3/2*var_a, 0, dt_2*var_a, 0,
+              0, dt_3/2*var_a, 0, dt_2*var_a;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

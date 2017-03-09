@@ -24,8 +24,10 @@ private:
   void Initialize(const MeasurementPackage& measurement_package);
   void Predict(const MeasurementPackage& measurement_package);
   void Update(const MeasurementPackage& measurement_package);
-  void UpdateProcessCovarianceMatrix(float dt, float noise_ax, float noise_ay);
+  void UpdateProcessCovarianceMatrix(float dt, float std_a);
   void UpdateStateTransitionMatrix(float dt);
+  VectorXd PredictRadarMeasurement(const VectorXd& x) const;
+
 
 private:
   bool is_initialized_;
