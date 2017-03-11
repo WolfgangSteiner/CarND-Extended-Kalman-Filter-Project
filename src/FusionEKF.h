@@ -24,7 +24,7 @@ private:
   void Initialize(const MeasurementPackage& measurement_package);
   void Predict(const MeasurementPackage& measurement_package);
   void Update(const MeasurementPackage& measurement_package);
-  void UpdateProcessCovarianceMatrix(float dt, float std_a);
+  void UpdateProcessCovarianceMatrix(float dt);
   void UpdateStateTransitionMatrix(float dt);
   VectorXd PredictRadarMeasurement(const VectorXd& x) const;
 

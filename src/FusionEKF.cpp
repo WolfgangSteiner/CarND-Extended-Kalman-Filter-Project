@@ -21,14 +21,15 @@ FusionEKF::FusionEKF()
   H_laser_ << 1.0, 0.0, 0.0, 0.0,
               0.0, 1.0, 0.0, 0.0;
 
-  const float s = 0.0225;
-  const float sigma_px = s;
-  const float sigma_py = s;
-  R_laser_ << sigma_px,  0.0,  0.0, sigma_py;
+  // values taken from project suggestion
+  const float var_px = 0.0225;
+  const float var_py = 0.0225;
+  R_laser_ << var_px,  0.0,  0.0, var_py;
 
-  const float var_rho = pow(0.3,2);
-  const float var_phi = pow(0.0175,2);
-  const float var_rho_dot = pow(0.1,2);
+  // values taken from project suggestion
+  const float var_rho = 0.09;
+  const float var_phi = 0.0009;
+  const float var_rho_dot = 0.09;
   R_radar_ << var_rho, 0.0, 0.0,
     0.0, var_phi, 0.0,
     0.0, 0.0, var_rho_dot;
@@ -108,11 +109,7 @@ void FusionEKF::Predict(const MeasurementPackage& m)
 
   previous_timestamp_ = current_time_stamp;
 
-  // max acceleration of a human (Usain Bolt) is 3.09 m/s**2, according to:
-  // http://cpb.iphy.ac.cn/fileup/PDF/2016-3-034501.pdf
-  const float a_max = 3.0f;
-  const float std_a = 0.5 * a_max;
-  UpdateProcessCovarianceMatrix(dt, std_a);
+  UpdateProcessCovarianceMatrix(dt);
   UpdateStateTransitionMatrix(dt);
 
   ekf_.Predict();
@@ -155,12 +152,12 @@ void FusionEKF::Update(const MeasurementPackage& m)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FusionEKF::UpdateProcessCovarianceMatrix(float dt, float std_a)
+void FusionEKF::UpdateProcessCovarianceMatrix(float dt)
 {
   const float dt_2 = dt * dt;
   const float dt_3 = dt_2 * dt;
   const float dt_4 = dt_3 * dt;
-  const float var_a =  pow(std_a, 2);
+  const float var_a = 9; // as suggested by the project.
 
   ekf_.Q_ <<  dt_4/4*var_a, 0, dt_3/2*var_a, 0,
               0, dt_4/4*var_a, 0, dt_3/2*var_a,
